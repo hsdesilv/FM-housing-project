@@ -1,0 +1,243 @@
+---
+title: "FM Housing Price Prediction"
+author: "Harshana De Silva Feelixge"
+format: html
+editor: visual
+---
+
+## Project Overview
+
+This project develops a machine learning model to predict the sold price of residential properties in the Fargo–Moorhead area.
+
+The dataset contains residential property sales from the Fargo-Moorhead area from 2018–2022. The goal was to predict 'sold_price' using property characteristics including square footage, year built, number of bedrooms and bathrooms, garage stalls, lot size, city, high school area, and housing style.
+
+Two regression models were developed and compared:
+
+-   Multiple Linear Regression
+-   K-Nearest Neighbors (KNN) Regression
+
+The data were divided into training (80%) and testing (20%) sets, with the sold price used for stratification. Model performance was evaluated on the held-out test set using RMSE, MAE, and R².
+
+## Data and Modeling Approach
+
+## Exploratory Data Analysis
+
+Before developing the prediction models, exploratory data analysis was used to examine the distribution of sold prices and relationships between property characteristics and sale price.
+
+### Distribution of Sold Prices
+
+```{r}
+#| label: fig-sold-price
+#| fig-cap: "Sold prices are strongly right-skewed, with most properties concentrated in the lower price range and a relatively small number of high-priced properties forming a long upper tail."
+#| echo: false
+#| warning: false
+#| message: false
+
+library(tidyverse)
+library(janitor)
+
+FM_housing <- read.csv("../data/FM_Housing_2018_2022_clean.csv") |>
+  clean_names()
+
+ggplot(FM_housing, aes(x = sold_price)) +
+  geom_histogram(bins = 40, fill="steelblue", color="darkgrey") +
+  scale_x_continuous(labels = scales::label_dollar()) +
+  labs(
+    x = "Sold Price",
+    y = "Number of Properties"
+  ) +
+  
+  theme_minimal()
+```
+
+### Sold Price and Square Footage
+
+```{r}
+#| label: fig-sqft-price
+#| fig-cap: "Sold price generally increases with total square footage, although variability in sold price becomes greater among larger properties."
+#| echo: false
+#| warning: false
+#| message: false
+ggplot(FM_housing, aes(
+  x = total_sq_ft,
+  y = sold_price
+)) +
+  geom_point(
+    color = "steelblue",
+    alpha = 0.5
+  ) +
+  scale_y_continuous(
+    labels = scales::label_dollar()
+  ) +
+  labs(
+    x = "Total Square Footage",
+    y = "Sold Price"
+  ) +
+  theme_minimal()
+```
+
+### Sold Price by City
+
+```{r}
+#| label: fig-city-price
+#| fig-cap: "Sold price distributions vary across Fargo, Moorhead, and West Fargo, although substantial overlap exists among the three cities."
+#| echo: false
+#| warning: false
+#| message: false
+
+ggplot(FM_housing, aes(
+  x = city,
+  y = sold_price
+)) +
+  geom_boxplot() +
+  scale_y_continuous(
+    labels = scales::label_dollar()
+  ) +
+  labs(
+    x = "City",
+    y = "Sold Price"
+  ) +
+  theme_minimal()
+
+```
+
+### KNN Model Tuning
+
+The number of neighbors (K) for the KNN model was selected using 5-fold cross-validation on the training data. RMSE was used as the primary tuning metric.
+
+```{r}
+#| label: fig-knn-tuning
+#| fig-cap: "Five-fold cross-validation RMSE across candidate values of K. K = 10 produced the lowest cross-validated RMSE and was selected for the final KNN model."
+#| echo: false
+#| warning: false
+#| message: false
+
+knn_tuning_results <- tibble(
+  neighbors = c(3, 5, 7, 10, 15, 20, 30, 40, 50),
+  rmse = c(65810, 63682, 62969, 62713, 62797, 63167, 64019, 64809, 65544)
+)
+
+ggplot(
+  knn_tuning_results,
+  aes(x = neighbors, y = rmse)
+) +
+  geom_line() +
+  geom_point(color = "steelblue",
+  size = 3) +
+  scale_x_continuous(
+    breaks = knn_tuning_results$neighbors
+  ) +
+  scale_y_continuous(
+    labels = scales::label_dollar()
+  ) +
+  labs(
+    x = "Number of Neighbors (K)",
+    y = "Cross-Validated RMSE"
+  ) +
+  theme_minimal()
+```
+
+## Model Performance
+
+## Actual vs. Predicted Sold Prices
+
+Actual versus predicted plots were used to examine how closely each model's predictions matched observed sold prices. Points closer to the dashed reference line represent more accurate predictions.
+
+### Multiple Linear Regression
+
+```{r}
+#| label: fig-lm-predictions
+#| fig-cap: "Actual versus predicted sold prices for the multiple linear regression model. The dashed line represents perfect agreement between predicted and actual prices.One extreme predicted value above the displayed range is not shown"
+#| echo: false
+#| warning: false
+#| message: false
+
+lm_results <- read.csv("lm_results.csv")
+
+ggplot(
+  lm_results,
+  aes(x = sold_price, y = .pred)
+) +
+  geom_point(
+    color = "steelblue",
+    alpha = 0.3
+  ) +
+  geom_abline(
+    slope = 1,
+    intercept = 0,
+    linetype = "dashed"
+  ) +
+  scale_x_continuous(
+    labels = scales::label_dollar()
+  ) +
+  scale_y_continuous(
+    labels = scales::label_dollar()
+  ) +
+  labs(
+    x = "Actual Sold Price",
+    y = "Predicted Sold Price"
+  ) +
+  coord_cartesian(
+    xlim = c(0, 2300000),
+    ylim = c(0, 2300000)
+  ) +
+  theme_minimal()
+```
+
+### K-Nearest Neighbors Regression
+
+```{r}
+#| label: fig-knn-predictions
+#| fig-cap: "Actual versus predicted sold prices for the KNN regression model (K = 10). The dashed line represents perfect agreement between predicted and actual prices."
+#| echo: false
+#| warning: false
+#| message: false
+
+knn_results <- read.csv("knn_results.csv")
+
+ggplot(
+  knn_results,
+  aes(x = sold_price, y = .pred)
+) +
+  geom_point(
+    color = "steelblue",
+    alpha = 0.3
+  ) +
+  geom_abline(
+    slope = 1,
+    intercept = 0,
+    linetype = "dashed"
+  ) +
+  scale_x_continuous(
+    labels = scales::label_dollar()
+  ) +
+  scale_y_continuous(
+    labels = scales::label_dollar()
+  ) +
+  labs(
+    x = "Actual Sold Price",
+    y = "Predicted Sold Price"
+  ) +
+  coord_cartesian(
+    xlim = c(0, 2300000),
+    ylim = c(0, 2300000)
+  ) +
+  theme_minimal()
+```
+
+The two models were evaluated on the test dataset.
+
+| Model                        |     RMSE |      MAE |    R² |
+|------------------------------|---------:|---------:|------:|
+| Multiple Linear Regression   | \$66,811 | \$43,099 | 0.737 |
+| K-Nearest Neighbors (K = 10) | \$57,831 | \$36,521 | 0.803 |
+
+**MAE** represents the average absolute difference between predicted and actual sold prices, while **RMSE** gives greater weight to larger prediction errors. **R²** represents the proportion of variation in sold price accounted for by the model's predictions.
+
+## Final model and Deployment
+
+#### FM Housing Price Predictor Shiny application using locally hosted model API
+
+![](images/Screenshot%202026-09-18%20174955.png){width="400"}
+
+The KNN model performed better on all three test-set metrics. Compared with the linear regression model, KNN had lower RMSE and MAE and a higher R². Therefore, the KNN model with K = 10 was selected as the final model. The fitted model was packaged using **vetiver** and served through locally hosted API. A **shiny application** was developed to allow users to selected property characteristics and request predicted sold price from the model API. The application provides an interactive interface while keeping the prediction model separate from the user-facing application.

@@ -1,0 +1,17 @@
+file: fm_housing_knn.rds
+file_size: 672019
+pin_hash: 99126733dc2e8227
+type: rds
+title: 'fm_housing_knn: a pinned list'
+description: A kknn regression modeling workflow
+tags: ~
+urls: ~
+created: 20260918T034651Z
+api_version: 1
+user:
+  required_pkgs:
+  - kknn
+  - parsnip
+  - recipes
+  - workflows
+  renv_lock: ~
